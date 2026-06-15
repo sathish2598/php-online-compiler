@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PHP Online Compiler — Latest (8.5)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐘</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/editor/editor.main.css">
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1c212c;
+    --border: #2a3140;
+    --text: #e6e8ee;
+    --muted: #8a93a6;
+    --accent: #7b68ee;
+    --accent-2: #4f46e5;
+    --success: #34d399;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--bg) 100%);
+    border-bottom: 1px solid var(--border);
+    gap: 16px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+  }
+  .logo .elephant {
+    font-size: 22px;
+  }
+  .badge {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: #fff;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .toolbar {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  select, button, .file-label {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  select:hover, button:hover, .file-label:hover { background: #232938; border-color: #3a4356; }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    border-color: transparent;
+    font-weight: 600;
+    padding: 7px 18px;
+  }
+  button.primary:hover { filter: brightness(1.1); }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .file-label input { display: none; }
+  main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+  .pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pane-header {
+    padding: 8px 14px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .editor-pane { flex: 1.3; border-right: 1px solid var(--border); }
+  .output-pane { flex: 1; }
+  #editor { flex: 1; }
+  #input { flex: 0 0 100px; border-top: 1px solid var(--border); background: var(--panel); }
+  #input-box {
+    width: 100%; height: 100%;
+    background: transparent;
+    color: var(--text);
+    border: none;
+    padding: 10px 14px;
+    font-family: "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    resize: none;
+    outline: none;
+  }
+  #output {
+    flex: 1;
+    background: var(--panel);
+    color: var(--text);
+    padding: 14px;
+    font-family: "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+  }
+  .stats {
+    padding: 8px 14px;
+    background: var(--panel-2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .stats span b { color: var(--text); font-weight: 600; }
+  .status-success { color: var(--success); }
+  .status-error { color: var(--danger); }
+  .status-running { color: var(--warning); }
+  .spinner {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .err { color: var(--danger); }
+  .ok { color: var(--success); }
+  .divider {
+    width: 4px;
+    background: var(--border);
+    cursor: col-resize;
+    transition: background 0.15s;
+  }
+  .divider:hover { background: var(--accent); }
+  .footer-bar {
+    padding: 6px 16px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .footer-bar a { color: var(--accent); text-decoration: none; }
+  .footer-bar a:hover { text-decoration: underline; }
+  kbd {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: inherit;
+    font-size: 11px;
+  }
+  @media (max-width: 850px) {
+    main { flex-direction: column; }
+    .editor-pane { border-right: none; border-bottom: 1px solid var(--border); }
+    .divider { display: none; }
+    header { flex-wrap: wrap; gap: 8px; padding: 8px; }
+    .toolbar { margin-left: 0; width: 100%; flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="elephant">🐘</span>
+    <span>PHP Online Compiler</span>
+    <span class="badge" id="version-badge">PHP 8.5</span>
+  </div>
+  <div class="toolbar">
+    <select id="version" title="PHP version">
+      <option value="8.5" selected>PHP 8.5 (latest)</option>
+      <option value="8.4">PHP 8.4</option>
+      <option value="8.3">PHP 8.3</option>
+      <option value="8.2">PHP 8.2</option>
+      <option value="8.0">PHP 8.0</option>
+      <option value="7.4">PHP 7.4</option>
+      <option value="5.6">PHP 5.6</option>
+    </select>
+    <select id="examples" title="Load example">
+      <option value="">-- Examples --</option>
+      <option value="hello">Hello World</option>
+      <option value="php85">PHP 8.5: Pipe operator |></option>
+      <option value="php85b">PHP 8.5: #[\NoDiscard] attribute</option>
+      <option value="php85c">PHP 8.5: array_first() &amp; array_last()</option>
+      <option value="php84">PHP 8.4: Property hooks</option>
+      <option value="php84b">PHP 8.4: Asymmetric visibility</option>
+      <option value="php83">PHP 8.3: Typed class constants</option>
+      <option value="php82">PHP 8.2: Readonly classes</option>
+      <option value="php81">PHP 8.1: Enums &amp; Fibers</option>
+      <option value="php80">PHP 8.0: Match &amp; named args</option>
+      <option value="oop">OOP: Classes &amp; inheritance</option>
+      <option value="json">JSON handling</option>
+      <option value="regex">Regex pattern matching</option>
+      <option value="dates">Date manipulation</option>
+      <option value="stdin">Read from stdin</option>
+    </select>
+    <label class="file-label" title="Open .php file">
+      📂 Open
+      <input type="file" id="file-input" accept=".php,.txt,.phtml" />
+    </label>
+    <button id="save-btn" title="Download code">💾 Save</button>
+    <button id="share-btn" title="Copy share link">🔗 Share</button>
+    <button id="clear-btn" class="danger" title="Clear output">🗑 Clear</button>
+    <button id="run-btn" class="primary" title="Run (Ctrl+Enter)">▶ Run</button>
+  </div>
+</header>
+
+<main>
+  <div class="pane editor-pane">
+    <div class="pane-header">
+      <span>main.php</span>
+      <span>UTF-8 · PHP</span>
+    </div>
+    <div id="editor"></div>
+  </div>
+  <div class="divider" id="divider"></div>
+  <div class="pane output-pane">
+    <div class="pane-header">
+      <span>Output</span>
+      <span id="status">Ready</span>
+    </div>
+    <pre id="output">Press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to run your PHP code.</pre>
+    <div class="pane-header">
+      <span>Standard Input (stdin)</span>
+      <span style="font-size: 10px; opacity:.7">one value per line</span>
+    </div>
+    <div id="input"><textarea id="input-box" placeholder="Values passed to fgets(STDIN), readline(), etc."></textarea></div>
+    <div class="stats">
+      <span>Time: <b id="stat-time">—</b></span>
+      <span>Memory: <b id="stat-mem">—</b></span>
+      <span>Exit: <b id="stat-exit">—</b></span>
+    </div>
+  </div>
+</main>
+
+<div class="footer-bar">
+  <div>Latest PHP features supported. Code runs sandboxed with a 10s timeout and 128M memory limit.</div>
+  <div>Shortcut: <kbd>Ctrl+Enter</kbd> to run · <kbd>Ctrl+S</kbd> to save</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+<script>
+  const EXAMPLES = {
+    hello: `<?php
+// Welcome to the PHP Online Compiler!
+echo "Hello, World!\\n";
+echo "PHP version: " . PHP_VERSION . "\\n";
+
+$name = "Developer";
+echo "Greetings, {$name}!\\n";
+`,
+
+    php85: `<?php
+// PHP 8.5: Pipe operator |>
+// Chain function calls left-to-right.
+
+$result = "  Hello, World!  "
+    |> trim(...)
+    |> strtoupper(...)
+    |> fn($s) => str_replace(',', ';', $s);
+
+echo $result . "\\n";
+
+$sum = [1, 2, 3, 4, 5]
+    |> array_filter(...)
+    |> array_sum(...);
+
+echo "Sum: $sum\\n";
+`,
+
+    php85b: `<?php
+// PHP 8.5: #[\\NoDiscard] attribute
+// Marks return values that must not be ignored.
+
+#[\\NoDiscard("This result should be used")]
+function compute(int $x): int {
+    return $x * 2;
+}
+
+$value = compute(21);
+echo "Result: $value\\n";
+
+// Calling without using the return value will emit a warning:
+// compute(10);
+`,
+
+    php85c: `<?php
+// PHP 8.5: array_first() and array_last()
+// Get the first/last value of an array without disturbing the
+// internal pointer and without writing reset()/end() boilerplate.
+
+$events = ['login', 'view_page', 'purchase', 'logout'];
+
+echo "First event: " . array_first($events) . "\\n";
+echo "Last  event: " . array_last($events) . "\\n";
+
+// Works on string-keyed associative arrays too.
+$user = ['name' => 'Ada', 'role' => 'admin', 'city' => 'London'];
+echo "\\nFirst value: " . array_first($user) . "\\n";
+echo "Last  value: " . array_last($user) . "\\n";
+
+// Returns null for an empty array (no warning, no error).
+var_dump(array_first([]));
+var_dump(array_last([]));
+
+// Pairs nicely with the new pipe operator:
+$top = [5, 2, 9, 1, 7]
+    |> fn($a) => tap($a, 'sort')
+    |> array_last(...);
+echo "\\nLargest: $top\\n";
+
+function tap(array $a, string $fn): array { $fn($a); return $a; }
+`,
+
+    php84: `<?php
+// PHP 8.4: Property hooks
+class User {
+    public string $fullName {
+        get => trim($this->first . ' ' . $this->last);
+        set(string $value) {
+            [$this->first, $this->last] = explode(' ', $value, 2) + ['', ''];
+        }
+    }
+
+    public function __construct(
+        public string $first = '',
+        public string $last = ''
+    ) {}
+}
+
+$u = new User('Ada', 'Lovelace');
+echo $u->fullName . "\\n";
+
+$u->fullName = 'Grace Hopper';
+echo "First: {$u->first}, Last: {$u->last}\\n";
+`,
+
+    php84b: `<?php
+// PHP 8.4: Asymmetric visibility
+class Counter {
+    public private(set) int $value = 0;
+
+    public function increment(): void {
+        $this->value++;
+    }
+}
+
+$c = new Counter();
+$c->increment();
+$c->increment();
+echo "Count: {$c->value}\\n";
+
+// $c->value = 100; // Error: cannot modify from outside
+`,
+
+    php83: `<?php
+// PHP 8.3: Typed class constants
+class HttpStatus {
+    const int OK = 200;
+    const int NOT_FOUND = 404;
+    const string SERVER_ERROR_MSG = 'Internal Server Error';
+}
+
+echo "OK = " . HttpStatus::OK . "\\n";
+echo "404 = " . HttpStatus::NOT_FOUND . "\\n";
+echo HttpStatus::SERVER_ERROR_MSG . "\\n";
+
+// json_validate() is also new in 8.3
+$json = '{"name":"PHP","version":8.3}';
+var_dump(json_validate($json));
+`,
+
+    php82: `<?php
+// PHP 8.2: Readonly classes
+readonly class Point {
+    public function __construct(
+        public float $x,
+        public float $y,
+    ) {}
+
+    public function distanceTo(Point $other): float {
+        return sqrt(($this->x - $other->x) ** 2 + ($this->y - $other->y) ** 2);
+    }
+}
+
+$a = new Point(0, 0);
+$b = new Point(3, 4);
+echo "Distance: " . $a->distanceTo($b) . "\\n";
+
+// $a->x = 5; // Error: cannot modify readonly property
+`,
+
+    php81: `<?php
+// PHP 8.1: Enums
+enum Status: string {
+    case Active = 'A';
+    case Pending = 'P';
+    case Closed = 'C';
+
+    public function label(): string {
+        return match($this) {
+            Status::Active  => 'Currently active',
+            Status::Pending => 'Awaiting action',
+            Status::Closed  => 'No longer open',
+        };
+    }
+}
+
+$s = Status::Active;
+echo "{$s->name} ({$s->value}): {$s->label()}\\n";
+
+foreach (Status::cases() as $case) {
+    echo " - {$case->name}\\n";
+}
+`,
+
+    php80: `<?php
+// PHP 8.0: match expression and named arguments
+function greet(string $name, string $greeting = 'Hello', bool $upper = false): string {
+    $msg = "$greeting, $name!";
+    return $upper ? strtoupper($msg) : $msg;
+}
+
+echo greet(name: 'World', upper: true) . "\\n";
+
+$day = 'Tue';
+$full = match($day) {
+    'Mon' => 'Monday',
+    'Tue' => 'Tuesday',
+    'Wed' => 'Wednesday',
+    default => 'Unknown',
+};
+echo "Day: $full\\n";
+
+// Nullsafe operator
+class User {
+    public ?Address $address = null;
+}
+class Address { public string $city = 'NYC'; }
+
+$user = new User();
+echo "City: " . ($user->address?->city ?? 'unknown') . "\\n";
+`,
+
+    oop: `<?php
+abstract class Shape {
+    abstract public function area(): float;
+    public function describe(): string {
+        return sprintf("%s with area %.2f", static::class, $this->area());
+    }
+}
+
+class Circle extends Shape {
+    public function __construct(private float $radius) {}
+    public function area(): float { return M_PI * $this->radius ** 2; }
+}
+
+class Rectangle extends Shape {
+    public function __construct(private float $w, private float $h) {}
+    public function area(): float { return $this->w * $this->h; }
+}
+
+$shapes = [new Circle(5), new Rectangle(4, 6)];
+foreach ($shapes as $s) echo $s->describe() . "\\n";
+`,
+
+    json: `<?php
+$data = [
+    'app' => 'PHP Compiler',
+    'version' => PHP_VERSION,
+    'features' => ['hooks', 'enums', 'readonly', 'match', 'pipes'],
+    'meta' => ['stable' => true, 'released' => 2026]
+];
+
+$json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo "Encoded:\\n$json\\n\\n";
+
+$decoded = json_decode($json, true);
+echo "Decoded app name: {$decoded['app']}\\n";
+echo "Feature count: " . count($decoded['features']) . "\\n";
+`,
+
+    regex: `<?php
+$text = "Email me at hello@example.com or admin@test.org";
+preg_match_all('/[\\w.+-]+@[\\w.-]+\\.[a-z]{2,}/i', $text, $matches);
+echo "Found emails:\\n";
+foreach ($matches[0] as $email) echo " - $email\\n";
+
+$cleaned = preg_replace('/\\s+/', ' ', "Too    much    space\\there");
+echo "\\nCleaned: $cleaned\\n";
+
+// Named groups
+$log = "2026-06-15 17:30 ERROR Database down";
+if (preg_match('/(?<date>\\d{4}-\\d{2}-\\d{2}) (?<time>\\d{2}:\\d{2}) (?<level>\\w+) (?<msg>.+)/', $log, $m)) {
+    echo "\\nLevel: {$m['level']}, Message: {$m['msg']}\\n";
+}
+`,
+
+    dates: `<?php
+$now = new DateTimeImmutable();
+echo "Now: " . $now->format('Y-m-d H:i:s') . "\\n";
+
+$tomorrow = $now->modify('+1 day');
+echo "Tomorrow: " . $tomorrow->format('l, F jS Y') . "\\n";
+
+$diff = $now->diff(new DateTimeImmutable('2030-01-01'));
+echo "Days until 2030: {$diff->days}\\n";
+
+$tz = new DateTimeZone('Asia/Kolkata');
+$ist = $now->setTimezone($tz);
+echo "Time in IST: " . $ist->format('H:i T') . "\\n";
+`,
+
+    stdin: `<?php
+// Reads from the "Standard Input" panel below.
+echo "What's your name? ";
+$name = trim(fgets(STDIN));
+
+echo "How old are you? ";
+$age = (int) trim(fgets(STDIN));
+
+echo "\\nHi $name, you are $age years old.\\n";
+echo "In 10 years you'll be " . ($age + 10) . ".\\n";
+`,
+  };
+
+  const DEFAULT_CODE = EXAMPLES.hello;
+
+  let editor;
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+  require(['vs/editor/editor.main'], function() {
+    monaco.editor.defineTheme('php-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { token: 'comment', foreground: '7a8499', fontStyle: 'italic' },
+        { token: 'keyword', foreground: 'c792ea' },
+        { token: 'string', foreground: 'a5e075' },
+        { token: 'number', foreground: 'f78c6c' },
+        { token: 'variable', foreground: '82aaff' },
+      ],
+      colors: {
+        'editor.background': '#0f1115',
+        'editor.lineHighlightBackground': '#1a1f2a',
+        'editorGutter.background': '#0f1115',
+        'editorLineNumber.foreground': '#3e4858',
+      }
+    });
+    editor = monaco.editor.create(document.getElementById('editor'), {
+      value: loadCode(),
+      language: 'php',
+      theme: 'php-dark',
+      fontSize: 14,
+      fontFamily: '"JetBrains Mono", Menlo, Monaco, Consolas, monospace',
+      minimap: { enabled: false },
+      automaticLayout: true,
+      tabSize: 4,
+      insertSpaces: true,
+      scrollBeyondLastLine: false,
+      smoothScrolling: true,
+      cursorBlinking: 'smooth',
+      renderLineHighlight: 'gutter',
+    });
+
+    editor.onDidChangeModelContent(() => {
+      localStorage.setItem('phpc-code', editor.getValue());
+    });
+
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, runCode);
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { saveCode(); });
+  });
+
+  function loadCode() {
+    const params = new URLSearchParams(location.hash.slice(1));
+    if (params.get('c')) {
+      try { return decodeURIComponent(escape(atob(params.get('c')))); } catch (e) {}
+    }
+    return localStorage.getItem('phpc-code') || DEFAULT_CODE;
+  }
+
+  document.getElementById('examples').addEventListener('change', (e) => {
+    const key = e.target.value;
+    if (key && EXAMPLES[key]) {
+      editor.setValue(EXAMPLES[key]);
+    }
+    e.target.value = '';
+  });
+
+  document.getElementById('version').addEventListener('change', (e) => {
+    document.getElementById('version-badge').textContent = 'PHP ' + e.target.value;
+  });
+
+  document.getElementById('run-btn').addEventListener('click', runCode);
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    document.getElementById('output').innerHTML = '';
+    document.getElementById('stat-time').textContent = '—';
+    document.getElementById('stat-mem').textContent = '—';
+    document.getElementById('stat-exit').textContent = '—';
+    document.getElementById('status').textContent = 'Ready';
+  });
+
+  document.getElementById('save-btn').addEventListener('click', saveCode);
+  function saveCode() {
+    const blob = new Blob([editor.getValue()], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'main.php';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('share-btn').addEventListener('click', () => {
+    const code = editor.getValue();
+    const encoded = btoa(unescape(encodeURIComponent(code)));
+    const url = location.origin + location.pathname + '#c=' + encoded;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById('share-btn');
+      const original = btn.textContent;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = original, 1500);
+    });
+  });
+
+  document.getElementById('file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => editor.setValue(ev.target.result);
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  async function runCode() {
+    const code = editor.getValue();
+    const version = document.getElementById('version').value;
+    const stdin = document.getElementById('input-box').value;
+    const output = document.getElementById('output');
+    const status = document.getElementById('status');
+    const runBtn = document.getElementById('run-btn');
+
+    runBtn.disabled = true;
+    runBtn.textContent = '⏳ Running...';
+    status.innerHTML = '<span class="spinner"></span> <span class="status-running">Running</span>';
+    output.textContent = '';
+
+    const started = performance.now();
+    try {
+      const res = await fetch('run.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, version, stdin })
+      });
+      const data = await res.json();
+      const elapsed = ((performance.now() - started) / 1000).toFixed(3);
+
+      output.textContent = '';
+      if (data.stdout) {
+        const out = document.createElement('span');
+        out.textContent = data.stdout;
+        output.appendChild(out);
+      }
+      if (data.stderr) {
+        const err = document.createElement('span');
+        err.className = 'err';
+        err.textContent = (data.stdout ? '\n' : '') + data.stderr;
+        output.appendChild(err);
+      }
+      if (!data.stdout && !data.stderr) {
+        output.innerHTML = '<i style="opacity:.6">(no output)</i>';
+      }
+
+      document.getElementById('stat-time').textContent = (data.time ?? elapsed) + 's';
+      document.getElementById('stat-mem').textContent = data.memory || '—';
+      document.getElementById('stat-exit').textContent = data.exit_code ?? '—';
+
+      if (data.exit_code === 0) {
+        status.innerHTML = '<span class="status-success">✓ Success</span>';
+      } else if (data.timed_out) {
+        status.innerHTML = '<span class="status-error">⏱ Timed out</span>';
+      } else {
+        status.innerHTML = '<span class="status-error">✗ Exit ' + data.exit_code + '</span>';
+      }
+    } catch (e) {
+      output.innerHTML = '<span class="err">Error contacting compiler: ' + e.message + '</span>';
+      status.innerHTML = '<span class="status-error">✗ Error</span>';
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = '▶ Run';
+    }
+  }
+
+  // Resizable divider
+  const divider = document.getElementById('divider');
+  const editorPane = document.querySelector('.editor-pane');
+  const outputPane = document.querySelector('.output-pane');
+  let dragging = false;
+  divider.addEventListener('mousedown', () => { dragging = true; document.body.style.cursor = 'col-resize'; });
+  document.addEventListener('mouseup', () => { dragging = false; document.body.style.cursor = ''; });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const total = editorPane.parentElement.clientWidth;
+    const left = e.clientX;
+    const leftFlex = left / total;
+    editorPane.style.flex = leftFlex;
+    outputPane.style.flex = 1 - leftFlex;
+  });
+</script>
+</body>
+</html>
